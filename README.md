@@ -23,7 +23,7 @@ def create(request, pay_channel):
     """
     return ""
 
-def create(request, sdk_config):
+def confirm(request, sdk_config):
     """支付通知
     
     :param request: (object)渠道支付后的回调请求
