@@ -41,6 +41,18 @@ def confirm(request, sdk_config):
 
 ## Login 登陆
 
+### 不同方式提交参数
+
+```python
+# 1. 表单方式
+headers = {"Content-Type": "application/x-www-form-urlencoded"}
+
+# 2. 键值对方式
+headers = {"Content-Type": "application/json"}
+
+response = requests.post(verify_url, params, headers=headers)
+```
+
 ### 忽略requests对https请求的SSL证书验证
 
 否则可能看到这样的报错：
