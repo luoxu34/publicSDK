@@ -10,7 +10,7 @@ def login(login_data, sdk_config={}):
 
     :param login_data: (dict)客户端传过来用于验证登陆的参数，一般有openID、token、timestamp
     :param sdk_config: (dict)服务端配置，一般有appId、appKey
-    :return: (tuple)登陆结果：status, message, userid, [other]
+    :return: (tuple)登陆结果：status, message, userid[, other]
     """
     return ""
 
@@ -41,6 +41,16 @@ def confirm(request, sdk_config):
 
 ## Login 登陆
 
+### 旧接口
+
+旧接口是这样定义的：
+
+```python
+def login(uid, sign, timestamp, sdk_config={})
+```
+
+前三个参数都是客户端传过来的，uid就是openId，sign一般是token，timestamp是10位长度的数字，sdk_config就是服务端参数。
+
 ### 不同方式提交参数
 
 ```python
@@ -67,6 +77,26 @@ params = {"openId": uid}
 
 response = requests.post(verify_url, params, verify=False)
 ```
+
+### 登陆成功后返回客户端结果
+
+通常情况下返回三个参数给上层调用:
+
+```python
+return 0, "success", uid
+```
+
+上层会取出uid放到openId中返回给客户端的公共层。
+
+有的特殊情况，需要多传一个token或其他对象回客户端，这时返回应该这样：
+
+```python
+return 0, "success", uid, token
+```
+
+第四个元素最好是字符串类型，token值会被上层调用取出放到other返回客户端。
+
+需要注意的是，如果元素四是字典对象，那字典中的other值会被取出返回客户端，而不是整个字典对象，可能导致意想不到的结果。详见代码`server.py`中的`LogincheckHandler`类。
 
 ## Create 下单
 
@@ -104,10 +134,10 @@ if request.remote_ip not in ips:
 3. 如果是布尔型，转换成0或1
 
 ```python
-def get_sign_str1(param, link="=", join="&", 
-                  ignore_key=("sign", "flag"), 
-                  ignore_value=("", None), 
-                  change_bool=False):
+def get_sign_str(param, link="=", join="&",
+                 ignore_key=("sign", "flag"),
+                 ignore_value=("", None),
+                 change_bool=False):
     str_list = []
     
     for k, v in sorted(param.iteritems()):
