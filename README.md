@@ -165,6 +165,36 @@ str_list.append("%s%s%s" % (k, link, urllib.quote("" if v is None else v)))
 > 
 > 千万不要拼完整个字符串后再编码，应该只对value编码
 
+### 收到get方式的支付通知
+
+一般情况下支付通知是post请求，也有的渠道会使用get，此时读取参数的方式就不一样了。
+
+```python
+# post方式读取参数
+def confirm(request, sdk_config):
+
+    ret = {"result_msg": "fail"}
+
+    data = request.REQUEST
+    if not data and request.body:
+        data = json.loads(request.body)
+
+    if not data:
+        ret["err_msg"] = "request parameter is empty."
+        return ret
+
+# get方式读取参数
+def confirm(request, sdk_config):
+
+    data = {}
+    for key in request.request.arguments.keys():
+        data[key] = request.get_argument(key, strip=False)
+
+# get方式也可以这样读取参数
+rg = lambda x, y='': request.get_argument(x, y)
+rg('query_id', '')
+```
+
 ## Attention
 
 ### 被join的每个元素必须是字符串
