@@ -35,6 +35,7 @@ def confirm(request, sdk_config):
         'order_id': u'xxx',
         'query_id': u'xxx',
         'remark': '',
+        'err_msg': '',
         'result_msg': 'success'
     }
 ```
@@ -172,27 +173,68 @@ str_list.append("%s%s%s" % (k, link, urllib.quote("" if v is None else v)))
 ```python
 # post方式读取参数
 def confirm(request, sdk_config):
-
-    ret = {"result_msg": "fail"}
-
     data = request.REQUEST
     if not data and request.body:
         data = json.loads(request.body)
 
-    if not data:
-        ret["err_msg"] = "request parameter is empty."
-        return ret
-
 # get方式读取参数
 def confirm(request, sdk_config):
-
     data = {}
     for key in request.request.arguments.keys():
         data[key] = request.get_argument(key, strip=False)
 
 # get方式也可以这样读取参数
-rg = lambda x, y='': request.get_argument(x, y)
-rg('query_id', '')
+def confirm(request, sdk_config):
+    rg = lambda x, y='': request.get_argument(x, y)
+    rg('query_id', '')
+```
+
+### 返回结果中的remark/err_msg/result_msg区别
+
+#### 区别：
+
+* remark 将会被存在数据库表中，说明订单支付/发货情况
+* result_msg 返回给渠道的信息，一般是普通的字符串或数字，也有可能是json字符串
+* err_msg 错误信息，如果发货失败，就会使用这个值返回渠道，而且是覆盖了result_msg的返回
+
+#### 要留心err_msg的使用
+
+这里涉及两个问题：
+
+* err_msg字符串包含%s和不包含时的区别
+* 为什么发货失败会覆盖result_msg的返回值
+
+如果发货正常，那返回渠道的就是result_msg，但是一旦发货失败，返回的就是err_msg字符串了。
+
+而且，如果err_msg为空字符串，返回值将会被重写，这样导致渠道收到的返回值格式不对。
+
+下面就是发货失败后主程序执行的代码：
+
+```python
+if "%s" not in err_msg:
+    result_msg = err_msg or '%s callback to game error %s' % (
+        pay_action.queryId,pay_action.remark)
+else:
+    result_msg = err_msg % (u'订单:%s, 游戏发货状态:%s' % (
+        pay_action.queryId, pay_action.remark))
+```
+
+#### 最佳实践：
+
+```python
+def confirm(request, sdk_config):
+    ret = {'err_msg': '{"ResultCode": 1, "ResultMessage": "%s"}'}
+
+    # your code in here
+
+    if success:
+        ret["amount"] = amount
+        ret["query_id"] = query_id
+        ret["order_id"] = order_id
+        ret["remark"] = "success"
+        ret["result_msg"] = make_result_msg(0, "success")
+
+    return ret
 ```
 
 ## Attention
