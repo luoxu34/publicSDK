@@ -189,6 +189,26 @@ def confirm(request, sdk_config):
     rg('query_id', '')
 ```
 
+### result_msg的返回值类型
+
+返回渠道的result_msg类型一般是字符串或者字典，如果是其他类型，tornado就不接收了。
+
+例如如果返回整形数字而非字符串数字，就会看到这样的报错：
+
+```python
+    {'remark': 'success', 'result_msg': 0, 'order_id': u'10011608176537015', 'err_msg': '', 'amount': 6.0, 'query_id': u'20180817114924837334D098'}
+Traceback (most recent call last):
+  File "/data/www/sdk_validator_server/server.py", line 135, in _call_back
+    func(*argv)
+  File "/data/www/sdk_validator_server/server.py", line 487, in handler
+    self.write(result_msg)
+  File "/data/www/sdk_validator_server/server.py", line 249, in write
+    super(BaseSDKHandler,self).write(rsp)
+  File "/usr/local/lib/python2.7/site-packages/tornado-4.2-py2.7-linux-x86_64.egg/tornado/web.py", line 695, in write
+    raise TypeError(message)
+TypeError: write() only accepts bytes, unicode, and dict objects
+```
+
 ### 返回结果中的remark/err_msg/result_msg区别
 
 #### 区别：
