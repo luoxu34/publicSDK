@@ -191,7 +191,7 @@ def confirm(request, sdk_config):
 
 ### result_msg的返回值类型
 
-返回渠道的result_msg类型一般是字符串或者字典，如果是其他类型，tornado就不接收了。
+返回渠道的result_msg类型一般是字符串或者字典，如果是其他类型，tornado就不接受了。
 
 例如如果返回整形数字而非字符串数字，就会看到这样的报错：
 
