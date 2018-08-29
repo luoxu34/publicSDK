@@ -257,6 +257,14 @@ def confirm(request, sdk_config):
     return ret
 ```
 
+### 暂停充值
+
+如果想停止对应sdk的充值通知接口confirm执行，需要给对应的sdk服务端参数增加一个参数：
+
+`stop_pay`: 如要暂停充值填写true，否则填其他任意值
+
+控制confirm是否执行是在主程序中的，所以不需要改动sdk中的任何代码。新增参数后到游戏配置页面设置`stop_pay`的值，再更新配置就完成了。
+
 ## Attention
 
 ### 被join的每个元素必须是字符串
