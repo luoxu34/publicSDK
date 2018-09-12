@@ -115,6 +115,12 @@ notifyUrl = "%s/%s/%s/%s" % (notifyUrl, request.game_code, request.sdk_code, req
 # req_body["notify_url"] = notifyUrl
 ```
 
+### 返回值
+
+需要非常注意，create函数的返回值，是会被存入到action表的other字段，同时返回给客户端。
+
+通常这个返回值是渠道订单号，所以是字符串。如果返回很多值一般用json字符串，这时一定要把dict转成json再返回，不然存到mysql的时候就会出错。
+
 ## Confirm 支付通知
 
 ### 验证发起回调的游戏服在白名单中
