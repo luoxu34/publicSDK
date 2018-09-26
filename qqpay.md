@@ -4,7 +4,7 @@
 
 交互时序图：
 
-![](../images/QQPay.png)
+![](images/QQPay.png)
 
 ## 接入接口
 
