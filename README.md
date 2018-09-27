@@ -312,3 +312,32 @@ UnicodeDecodeError: 'ascii' codec can't decode byte 0xe4 in position 0: ordinal 
 u'60\u5143\u5b9d'
 ```
 
+### xml document 和 dict 互转
+
+* 使用bs4库将xml文档转成字典
+
+```python
+def trans_xml_to_dict(xml):
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(xml, features='xml')
+    xml = soup.find('xml')
+    if not xml:
+        return {}
+
+    data = dict([(item.name, item.text) for item in xml.find_all()])
+    return data
+```
+
+* 字段转成xml文档的格式
+
+```python
+def trans_dict_to_xml(data):
+    xml = []
+    for k in sorted(data.keys()):
+        v = data.get(k)
+        if k == 'detail' and not v.startswith('<![CDATA['):
+            v = '<![CDATA[{}]]>'.format(v)
+        xml.append('<{key}>{value}</{key}>\n'.format(key=k, value=v))
+    return '<xml>\n{}</xml>'.format(''.join(xml))
+```
+
