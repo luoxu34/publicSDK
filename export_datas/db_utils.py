@@ -102,7 +102,7 @@ class Statistic_date(MyTable):pass
 all_table = [Ad, Ad_click, Ad_gdt, Ad_onload, Ad_show, Ad_statistic_result, Chatdata,
        Communication_record, Device, Enter, Error_pay, Event, Game_role, Game_role_pay,
        Game_server, Game_statistic_result, Login, New_device, Open, Open_new_device,
-       Opensdk, Pay, Post_pay, Qufu_users, Server_pay]
+       Opensdk, Pay, Post_pay, Qufu_users, Server_pay, Player]
 
 
 host = '127.0.0.1'
