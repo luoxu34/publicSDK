@@ -17,6 +17,33 @@ if not os.path.exists(output):
     os.makedirs(output)
 
 
+# mysql数据模型迭代器包装类
+class ModelIterator(object):
+    # 参考：
+    start_id = 0
+
+    def __init__(self, model, step=150000):
+        self.model = model
+        self.step = step
+
+    def __iter__(self):
+        rows = self.__getRows()
+        while True:
+            for item in rows:
+                yield item
+            rows = self.__getRows()
+
+    def __getRows(self):
+        rows = self.model.select().dicts().where(
+            self.model.id > self.start_id).limit(self.step)
+
+        if rows.count() == 0:
+            raise StopIteration()
+        else:
+            self.start_id = rows[-1]['id']
+            return rows
+
+
 def write_ok_file(db_name, tb_name, pk_id):
     line = '{}.{}:{}\n'.format(db_name, tb_name, pk_id)
     with open('ok', 'a') as f:
