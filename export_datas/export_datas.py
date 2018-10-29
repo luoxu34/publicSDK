@@ -17,6 +17,18 @@ if not os.path.exists(output):
     os.makedirs(output)
 
 
+def write_ok_file(db_name, tb_name, pk_id):
+    line = '{}.{}:{}\n'.format(db_name, tb_name, pk_id)
+    with open('ok', 'a') as f:
+        f.write(line)
+
+
+def file_too_large(path):
+    if os.path.isfile(path) and os.path.getsize(path) > 2097152:
+        return True
+    return False
+
+
 def faster_export(db_name, game_alias, table):
     now = str(datetime.datetime.now())[:19]
     ts = str(int(time.time()))
@@ -36,6 +48,7 @@ def faster_export(db_name, game_alias, table):
                     '{log_network}|{log_resolution}|{f1}|{f2}|{f3}|{f4}|{f5}|{f6}|'
                     '{log_channel}|{log_channel2}|{log_data}|{log_result}\n')
 
+    max_id = 0
     with open(os.path.join(output, db_name), 'a') as f:
 
         for row in table.select().dicts():
@@ -48,9 +61,13 @@ def faster_export(db_name, game_alias, table):
             if row.get('f6'):
                 row['f6'] = row['f6'].replace('\n', ' ')
 
-            row.update(db_name=db_name, game_alias=game_alias, table_name=tb_name, now=now, ts=ts)
+            row.update(db_name=db_name, game_alias=game_alias,
+                       table_name=tb_name, now=now, ts=ts)
             line = template.format(**row)
             f.write(line)
+            max_id = row['id']
+
+    write_ok_file(db_name, tb_name, max_id)
 
 
 def safe_export(db_name, game_alias, table):
@@ -70,13 +87,10 @@ def export():
             continue
 
         for table in all_table:
-            title = '{}.{}'.format(db_name, table._meta.table_name)
-            print('export ' + title)
+            print('export {}.{}'.format(db_name, table._meta.table_name))
 
             fun = safe_export if db_name in large_db else faster_export
             fun(db_name, game_alias, table)
-            with open('exported', 'a') as f:
-                f.write(title + '\n')
 
         database_proxy.close()
 
