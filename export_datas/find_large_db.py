@@ -14,7 +14,7 @@ try:
 except ImportError:
     from models.projects import Projects
 
-large_table = 500000
+large_table = 1000000
 large_db = []
 
 for i in Projects.objects.all():
@@ -26,7 +26,9 @@ for i in Projects.objects.all():
         continue  # 是有的库已经不存在了，但是记录还在
 
     for table in all_table:
-        if table.select().count() > large_table:
+        count = table.select().count()
+        if count > large_table:
+            # print i.code + ' : ' + table._meta.table_name + ' : ' + str(count)
             large_db.append(i.code)
             break
 
