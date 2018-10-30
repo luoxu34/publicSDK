@@ -16,15 +16,23 @@ output = '/data3/output'
 if not os.path.exists(output):
     os.makedirs(output)
 
+filename = 'datas'
+st = '2017-01-01 00:00:00'
+# et = '2017-01-01 00:00:00'
+et = ''
+
 
 # mysql数据模型迭代器包装类
 class ModelIterator(object):
     # 参考：
     start_id = 0
 
-    def __init__(self, model, step=150000):
+    def __init__(self, model, step=150000, et='', st=''):
         self.model = model
         self.step = step
+        self.tb_name = model.__name__.lower()
+        self.et = et
+        self.st = st
 
     def __iter__(self):
         rows = self.__getRows()
@@ -36,6 +44,16 @@ class ModelIterator(object):
     def __getRows(self):
         rows = self.model.select().dicts().where(
             self.model.id > self.start_id).limit(self.step)
+        if self.et:
+            if self.tb_name == 'player':
+                rows = rows.where(self.model.last_time <= self.et)
+            else:
+                rows = rows.where(self.model.log_time <= self.et)
+        if self.st:
+            if self.tb_name == 'player':
+                rows = rows.where(self.model.last_time > self.st)
+            else:
+                rows = rows.where(self.model.log_time > self.st)
 
         if rows.count() == 0:
             raise StopIteration()
@@ -51,9 +69,19 @@ def write_ok_file(db_name, tb_name, pk_id):
 
 
 def file_too_large(path):
-    if os.path.isfile(path) and os.path.getsize(path) > 2097152:
+    if os.path.isfile(path) and os.path.getsize(path) > 1073741824:
         return True
     return False
+
+
+def find_file(db_name):
+    path = os.path.join(output, db_name)
+    index = 0
+    while True:
+        if file_too_large(path) is False:
+            return path
+        index += 1
+        path = os.path.join(output, db_name + '_' + str(index))
 
 
 def faster_export(db_name, game_alias, table):
@@ -76,29 +104,54 @@ def faster_export(db_name, game_alias, table):
                     '{log_channel}|{log_channel2}|{log_data}|{log_result}\n')
 
     max_id = 0
-    with open(os.path.join(output, db_name), 'a') as f:
+    counts = 0
+    path = find_file(filename)
+    f = open(path, 'a')
 
-        for row in table.select().dicts():
-            for col, value in row.iteritems():
-                if value is None:
-                    row[col] = ''
+    if db_name in large_db:
+        items = ModelIterator(table, et=et)
+    else:
+        items = table.select().dicts()
+        if et:
+            if tb_name == 'player':
+                items = items.where(table.last_time <= et)
+            else:
+                items = items.where(table.log_time <= et)
+        if st:
+            if tb_name == 'player':
+                items = items.where(table.last_time > st)
+            else:
+                items = items.where(table.log_time > st)
 
-            if isinstance(row[an_col], basestring):
-                row[an_col] = row[an_col].replace('|', '#')
-            if row.get('f6'):
-                row['f6'] = row['f6'].replace('\n', ' ')
+    for row in items:
+        for col, value in row.iteritems():
+            if value is None:
+                row[col] = ''
 
-            row.update(db_name=db_name, game_alias=game_alias,
-                       table_name=tb_name, now=now, ts=ts)
-            line = template.format(**row)
-            f.write(line)
-            max_id = row['id']
+        if isinstance(row[an_col], basestring):
+            row[an_col] = row[an_col].replace('|', '#')
+        if row.get('f6'):
+            row['f6'] = row['f6'].replace('\n', ' ')
 
-    write_ok_file(db_name, tb_name, max_id)
+        row.update(db_name=db_name, game_alias=game_alias,
+                   table_name=tb_name, now=now, ts=ts)
+        line = template.format(**row)
+        f.write(line)
+        max_id = row['id']
 
+        counts += 1
+        if counts == 100000 and file_too_large(path):
+            f.flush()
+            f.close()
+            counts = 0
 
-def safe_export(db_name, game_alias, table):
-    pass
+            path = find_file(filename)
+            f = open(path, 'a')
+    try:
+        f.close()
+    except:
+        pass
+    return max_id
 
 
 def export():
@@ -114,10 +167,12 @@ def export():
             continue
 
         for table in all_table:
-            print('export {}.{}'.format(db_name, table._meta.table_name))
+            tb_name = table._meta.table_name
+            print('export {}.{}'.format(db_name, tb_name))
 
-            fun = safe_export if db_name in large_db else faster_export
-            fun(db_name, game_alias, table)
+            pk_id = faster_export(db_name, game_alias, table)
+            if pk_id:
+                write_ok_file(db_name, tb_name, pk_id)
 
         database_proxy.close()
 
