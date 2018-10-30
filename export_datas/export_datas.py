@@ -12,14 +12,16 @@ try:
 except ImportError:
     from models.projects import Projects
 
-output = '/data3/output'
+output = '/data3/output/'
 if not os.path.exists(output):
     os.makedirs(output)
 
 filename = 'datas'
-st = '2017-01-01 00:00:00'
-# et = '2017-01-01 00:00:00'
+st = ''
 et = ''
+
+number = 0
+index = 1
 
 
 # mysql数据模型迭代器包装类
@@ -46,12 +48,12 @@ class ModelIterator(object):
             self.model.id > self.start_id).limit(self.step)
         if self.et:
             if self.tb_name == 'player':
-                rows = rows.where(self.model.last_time <= self.et)
+                rows = rows.where(self.model.create_time <= self.et)
             else:
                 rows = rows.where(self.model.log_time <= self.et)
         if self.st:
             if self.tb_name == 'player':
-                rows = rows.where(self.model.last_time > self.st)
+                rows = rows.where(self.model.create_time > self.st)
             else:
                 rows = rows.where(self.model.log_time > self.st)
 
@@ -68,30 +70,13 @@ def write_ok_file(db_name, tb_name, pk_id):
         f.write(line)
 
 
-def file_too_large(path):
-    if os.path.isfile(path) and os.path.getsize(path) > 1073741824:
-        return True
-    return False
-
-
-def find_file(db_name):
-    path = os.path.join(output, db_name)
-    index = 0
-    while True:
-        if file_too_large(path) is False:
-            return path
-        index += 1
-        path = os.path.join(output, db_name + '_' + str(index))
-
-
 def faster_export(db_name, game_alias, table):
-    now = str(datetime.datetime.now())[:19]
-    ts = str(int(time.time()))
+    ts = ''
 
     tb_name = table.__name__.lower()
     if tb_name == 'player':
         an_col = 'other'
-        template = ('{now}|player|{game_alias}|{db_name}|{ts}|{server}|{player_id}|'
+        template = ('{create_time}|player|{game_alias}|{db_name}|{ts}|{server}|{player_id}|'
                     '{player_name}|{sdk_code}|{openid}|{create_time}|{last_time}|'
                     '{last_ip}|{login_num}|{status}|{log_channel}|{log_channel2}|'
                     '{mobile_key}|{network}|{resolution}|{other}\n')
@@ -104,22 +89,23 @@ def faster_export(db_name, game_alias, table):
                     '{log_channel}|{log_channel2}|{log_data}|{log_result}\n')
 
     max_id = 0
-    counts = 0
-    path = find_file(filename)
+    global number
+    global index
+    path = output + filename + '_' + str(index)
     f = open(path, 'a')
 
     if db_name in large_db:
-        items = ModelIterator(table, et=et)
+        items = ModelIterator(table, et=et, st=st)
     else:
         items = table.select().dicts()
         if et:
             if tb_name == 'player':
-                items = items.where(table.last_time <= et)
+                items = items.where(table.create_time <= et)
             else:
                 items = items.where(table.log_time <= et)
         if st:
             if tb_name == 'player':
-                items = items.where(table.last_time > st)
+                items = items.where(table.create_time > st)
             else:
                 items = items.where(table.log_time > st)
 
@@ -133,19 +119,23 @@ def faster_export(db_name, game_alias, table):
         if row.get('f6'):
             row['f6'] = row['f6'].replace('\n', ' ')
 
+        if row.get('last_time'):
+            ts = str(int(time.mktime(time.strptime(row['create_time'], '%Y-%m-%d %H:%M:%S'))))
+
         row.update(db_name=db_name, game_alias=game_alias,
-                   table_name=tb_name, now=now, ts=ts)
+                   table_name=tb_name, ts=ts)
         line = template.format(**row)
         f.write(line)
         max_id = row['id']
 
-        counts += 1
-        if counts == 100000 and file_too_large(path):
+        number += 1
+        if number == 10000000:
             f.flush()
             f.close()
-            counts = 0
+            number = 0
+            index += 1
 
-            path = find_file(filename)
+            path = output + filename + '_' + str(index)
             f = open(path, 'a')
     try:
         f.close()
