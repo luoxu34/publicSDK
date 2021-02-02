@@ -287,31 +287,35 @@ def confirm(request, sdk_config):
 TypeError: sequence item 0: expected string, int found
 ```
 
-### '{}'.format参数不能是unicode
+### 不能混合编码格式化字符串
 
 (only py2)由于python2中str和unicode两种编码共存导致
 
 ```python
 s = u'60\u5143\u5b9d'
 
-# %s 可以格式化unicode字符串
+# %s 可以格式化unicode和str两种类型的字符串
 >>> '%s' % s
 u'60\u5143\u5b9d'
 
-# 字符串的format方法不能格式化unicode字符串
+# 内置format函数也可以格式化unicode和str
+>>> format(s)
+u'60\u5143\u5b9d'
+
+# str的format方法不能格式化unicode字符串
 >>> '{}'.format(s)
 UnicodeEncodeError: 'ascii' codec can't encode characters in position 2-3: ordinal not in range(128)
 
-# 同样的错误
+# 类似的，unicode的format方法不能格式化str字符串
 >>> u'{}'.format('中国')
 UnicodeDecodeError: 'ascii' codec can't decode byte 0xe4 in position 0: ordinal not in range(128)
 
-# 正常的例子
->>> u'{}'.format(u'中国')
+# 正确的例子
+>>> u'{}'.format(u'元宝')
+u'\u5143\u5b9d'
 
-# 内置format函数可以格式化unicode字符串
->>> format(s)
-u'60\u5143\u5b9d'
+>>> '{}'.format('元宝')
+'\xe5\x85\x83\xe5\xae\x9d'
 ```
 
 ### xml document 和 dict 互转
